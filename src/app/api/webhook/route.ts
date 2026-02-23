@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
-    const fullSession = await stripe.checkout.sessions.retrieve(session.id);
+    const fullSession = await getStripe().checkout.sessions.retrieve(session.id);
     const customerEmail = fullSession.customer_details?.email;
 
     console.log("Order completed:", {

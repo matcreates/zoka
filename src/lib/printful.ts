@@ -1,11 +1,12 @@
 const PRINTFUL_API = "https://api.printful.com";
 
-function headers() {
-  if (!process.env.PRINTFUL_API_KEY) {
+function headers(): Record<string, string> {
+  const key = process.env.PRINTFUL_API_KEY;
+  if (!key) {
     throw new Error("PRINTFUL_API_KEY is not set in environment variables");
   }
   return {
-    Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+    Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
 }
