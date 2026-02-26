@@ -1,20 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 
 export default function ProductDetail({ product }: { product: Product }) {
-  const [selectedSize, setSelectedSize] = useState<string | undefined>(
-    product.sizes?.[0]
-  );
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
+  const selectedVariant = product.variants[selectedIdx];
+
   const handleAddToCart = () => {
-    addItem(product, selectedSize);
+    addItem(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        thumbnail: product.thumbnail,
+      },
+      selectedVariant.syncVariantId,
+      selectedVariant.label,
+      selectedVariant.price
+    );
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -33,24 +46,39 @@ export default function ProductDetail({ product }: { product: Product }) {
 
       <div className="max-w-7xl mx-auto px-6 pb-20">
         <div className="grid md:grid-cols-2 gap-12">
-          {/* Product Image */}
-          <div className="aspect-square bg-beige rounded-2xl flex items-center justify-center">
-            <div className="text-blue/20">
-              <svg
-                width="120"
-                height="120"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="0.5"
-              >
-                {product.category === "clothing" ? (
-                  <path d="M6 2L2 6v14a2 2 0 002 2h16a2 2 0 002-2V6l-4-4H6zM2 6h20M16 10a4 4 0 01-8 0" />
-                ) : (
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                )}
-              </svg>
+          {/* Product Images */}
+          <div>
+            <div className="aspect-square bg-beige rounded-2xl overflow-hidden relative">
+              <Image
+                src={product.images[activeImage] || product.thumbnail}
+                alt={product.name}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+                priority
+              />
             </div>
+            {product.images.length > 1 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                {product.images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImage(i)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden relative shrink-0 border-2 transition-colors ${
+                      activeImage === i ? "border-blue" : "border-transparent"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} view ${i + 1}`}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -62,30 +90,30 @@ export default function ProductDetail({ product }: { product: Product }) {
               {product.name}
             </h1>
             <p className="text-2xl font-semibold text-blue mb-6">
-              ${product.price}
+              ${selectedVariant.price.toFixed(2)}
             </p>
             <p className="text-foreground-muted leading-relaxed mb-8">
               {product.description}
             </p>
 
-            {/* Size Selector */}
-            {product.sizes && product.sizes.length > 0 && (
+            {/* Variant Selector */}
+            {product.variants.length > 1 && (
               <div className="mb-8">
                 <label className="text-xs font-semibold tracking-widest uppercase block mb-3">
                   {product.category === "clothing" ? "Size" : "Format"}
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size) => (
+                  {product.variants.map((variant, i) => (
                     <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
+                      key={variant.syncVariantId}
+                      onClick={() => setSelectedIdx(i)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        selectedSize === size
+                        selectedIdx === i
                           ? "bg-blue text-white border-blue"
                           : "border-beige-dark/40 hover:border-blue"
                       }`}
                     >
-                      {size}
+                      {variant.label}
                     </button>
                   ))}
                 </div>
@@ -104,16 +132,22 @@ export default function ProductDetail({ product }: { product: Product }) {
             {/* Details */}
             <div className="mt-10 pt-8 border-t border-beige-dark/30 space-y-3">
               <p className="text-sm text-foreground-muted">
-                <span className="font-medium text-foreground">Print on demand</span> — Made
-                just for you by Printful
+                <span className="font-medium text-foreground">
+                  Print on demand
+                </span>{" "}
+                — Made just for you by Printful
               </p>
               <p className="text-sm text-foreground-muted">
-                <span className="font-medium text-foreground">Worldwide shipping</span> —
-                Delivered right to your door
+                <span className="font-medium text-foreground">
+                  Worldwide shipping
+                </span>{" "}
+                — Delivered right to your door
               </p>
               <p className="text-sm text-foreground-muted">
-                <span className="font-medium text-foreground">Secure payment</span> —
-                Powered by Stripe
+                <span className="font-medium text-foreground">
+                  Secure payment
+                </span>{" "}
+                — Powered by Stripe
               </p>
             </div>
           </div>

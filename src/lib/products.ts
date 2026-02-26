@@ -1,3 +1,18 @@
+import {
+  fetchAllSyncProducts,
+  fetchSyncProduct,
+  categorizeFromCatalogName,
+  type PrintfulSyncVariant,
+} from "./printful";
+
+// ---------- Types ----------
+
+export interface ProductVariant {
+  syncVariantId: number;
+  label: string;
+  price: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -5,132 +20,100 @@ export interface Product {
   price: number;
   category: "clothing" | "poster";
   images: string[];
-  sizes?: string[];
-  printfulId?: string;
-  featured?: boolean;
+  thumbnail: string;
+  variants: ProductVariant[];
 }
 
-export const products: Product[] = [
-  {
-    id: "tee-classic-logo",
-    name: "Zoka Classic Logo Tee",
-    description:
-      "Premium heavyweight cotton tee featuring the iconic Zoka brushstroke logo. Relaxed fit, ribbed crew neck, and pre-shrunk fabric for lasting comfort.",
-    price: 35,
-    category: "clothing",
-    images: ["/products/tee-classic.jpg"],
-    sizes: ["S", "M", "L", "XL", "2XL"],
-    featured: true,
-  },
-  {
-    id: "hoodie-essentials",
-    name: "Zoka Essentials Hoodie",
-    description:
-      "Cozy brushed fleece hoodie with embroidered Zoka logo on the chest. Kangaroo pocket, adjustable drawstring hood, and dropped shoulders.",
-    price: 65,
-    category: "clothing",
-    images: ["/products/hoodie-essentials.jpg"],
-    sizes: ["S", "M", "L", "XL", "2XL"],
-    featured: true,
-  },
-  {
-    id: "tee-abstract-wave",
-    name: "Abstract Wave Tee",
-    description:
-      "All-over abstract wave print inspired by Zoka's signature art style. Soft-touch cotton blend with a modern boxy fit.",
-    price: 40,
-    category: "clothing",
-    images: ["/products/tee-wave.jpg"],
-    sizes: ["S", "M", "L", "XL"],
-    featured: false,
-  },
-  {
-    id: "crewneck-minimal",
-    name: "Minimal Crewneck Sweatshirt",
-    description:
-      "Clean and understated crewneck sweatshirt with a subtle Zoka wordmark on the back collar. Medium-weight French terry fabric.",
-    price: 55,
-    category: "clothing",
-    images: ["/products/crewneck-minimal.jpg"],
-    sizes: ["S", "M", "L", "XL", "2XL"],
-    featured: true,
-  },
-  {
-    id: "cap-structured",
-    name: "Zoka Structured Cap",
-    description:
-      "Six-panel structured cap with embroidered Zoka logo. Adjustable snapback closure, curved brim, and breathable eyelets.",
-    price: 30,
-    category: "clothing",
-    images: ["/products/cap-structured.jpg"],
-    sizes: ["One Size"],
-    featured: false,
-  },
-  {
-    id: "poster-blue-motion",
-    name: "Blue Motion — Art Print",
-    description:
-      "High-quality giclée art print on 250gsm matte paper. Bold blue brushstrokes capturing movement and energy. Available in multiple sizes.",
-    price: 25,
-    category: "poster",
-    images: ["/products/poster-blue-motion.jpg"],
-    sizes: ["A4", "A3", "A2"],
-    featured: true,
-  },
-  {
-    id: "poster-urban-layer",
-    name: "Urban Layer — Art Print",
-    description:
-      "Layered mixed-media composition with typographic elements. Printed on archival-quality heavyweight matte paper.",
-    price: 30,
-    category: "poster",
-    images: ["/products/poster-urban-layer.jpg"],
-    sizes: ["A4", "A3", "A2"],
-    featured: true,
-  },
-  {
-    id: "poster-signal",
-    name: "Signal — Art Print",
-    description:
-      "Minimalist abstract piece with sharp geometric lines and muted tones. Museum-quality print on cotton rag paper.",
-    price: 35,
-    category: "poster",
-    images: ["/products/poster-signal.jpg"],
-    sizes: ["A4", "A3", "A2"],
-    featured: true,
-  },
-  {
-    id: "poster-echo",
-    name: "Echo — Art Print",
-    description:
-      "Fluid organic forms in the Zoka blue palette. A statement piece for any space. Printed on premium 300gsm paper.",
-    price: 28,
-    category: "poster",
-    images: ["/products/poster-echo.jpg"],
-    sizes: ["A4", "A3", "A2"],
-    featured: false,
-  },
-  {
-    id: "poster-draft-01",
-    name: "Draft 01 — Art Print",
-    description:
-      "Raw, sketch-like composition straight from the Zoka studio. Limited edition run on textured fine art paper.",
-    price: 40,
-    category: "poster",
-    images: ["/products/poster-draft-01.jpg"],
-    sizes: ["A3", "A2"],
-    featured: false,
-  },
-];
+// ---------- Helpers ----------
 
-export function getProduct(id: string): Product | undefined {
-  return products.find((p) => p.id === id);
+function extractVariantLabel(variantName: string, productName: string): string {
+  const stripped = variantName.replace(productName, "").replace(/^\s*[-–—]\s*/, "").trim();
+  return stripped || variantName;
 }
 
-export function getProductsByCategory(category: "clothing" | "poster"): Product[] {
-  return products.filter((p) => p.category === category);
+function bestImage(variant: PrintfulSyncVariant, fallback: string): string {
+  const preview = variant.files.find((f) => f.type === "preview");
+  if (preview?.preview_url) return preview.preview_url;
+  const defaultFile = variant.files.find((f) => f.type === "default");
+  if (defaultFile?.preview_url) return defaultFile.preview_url;
+  if (variant.files[0]?.preview_url) return variant.files[0].preview_url;
+  return fallback;
 }
 
-export function getFeaturedProducts(): Product[] {
-  return products.filter((p) => p.featured);
+function buildDescription(catalogName: string, category: "clothing" | "poster"): string {
+  if (category === "poster") {
+    return `Museum-quality art print on premium paper. Printed on demand by Printful using ${catalogName} and shipped in protective packaging worldwide.`;
+  }
+  return `Premium quality ${catalogName.toLowerCase()}. Printed on demand by Printful and shipped directly to your door.`;
+}
+
+// ---------- Data fetching ----------
+
+export async function getAllProducts(): Promise<Product[]> {
+  if (!process.env.PRINTFUL_API_KEY) {
+    console.warn("PRINTFUL_API_KEY not set — returning empty product list");
+    return [];
+  }
+
+  try {
+    const syncProducts = await fetchAllSyncProducts();
+    const products: Product[] = [];
+
+    for (const sp of syncProducts) {
+      try {
+        const details = await fetchSyncProduct(sp.id);
+        const variants = details.sync_variants;
+        if (variants.length === 0) continue;
+
+        const catalogName = variants[0].product.name;
+        const category = categorizeFromCatalogName(catalogName);
+        const prices = variants.map((v) => parseFloat(v.retail_price));
+        const minPrice = Math.min(...prices);
+
+        const images: string[] = [];
+        const seen = new Set<string>();
+        for (const v of variants) {
+          const img = bestImage(v, sp.thumbnail_url);
+          if (!seen.has(img)) {
+            seen.add(img);
+            images.push(img);
+          }
+        }
+
+        products.push({
+          id: sp.id.toString(),
+          name: sp.name,
+          description: buildDescription(catalogName, category),
+          price: minPrice,
+          category,
+          images: images.length > 0 ? images : [sp.thumbnail_url],
+          thumbnail: sp.thumbnail_url,
+          variants: variants.map((v) => ({
+            syncVariantId: v.id,
+            label: extractVariantLabel(v.name, sp.name),
+            price: parseFloat(v.retail_price),
+          })),
+        });
+      } catch (err) {
+        console.error(`Failed to fetch details for product ${sp.id}:`, err);
+      }
+    }
+
+    return products;
+  } catch (err) {
+    console.error("Failed to fetch products from Printful:", err);
+    return [];
+  }
+}
+
+export async function getProduct(id: string): Promise<Product | undefined> {
+  const all = await getAllProducts();
+  return all.find((p) => p.id === id);
+}
+
+export async function getProductsByCategory(
+  category: "clothing" | "poster"
+): Promise<Product[]> {
+  const all = await getAllProducts();
+  return all.filter((p) => p.category === category);
 }

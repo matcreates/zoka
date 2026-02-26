@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 
 interface CheckoutItem {
-  id: string;
+  syncVariantId: number;
   name: string;
+  variantLabel: string;
   price: number;
   quantity: number;
-  size?: string;
 }
 
 export async function POST(request: Request) {
@@ -33,10 +33,9 @@ export async function POST(request: Request) {
           currency: "usd",
           product_data: {
             name: item.name,
-            description: item.size ? `Size: ${item.size}` : undefined,
+            description: item.variantLabel,
             metadata: {
-              product_id: item.id,
-              size: item.size || "",
+              sync_variant_id: item.syncVariantId.toString(),
             },
           },
           unit_amount: Math.round(item.price * 100),
@@ -46,8 +45,11 @@ export async function POST(request: Request) {
       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}`,
       metadata: {
-        order_items: JSON.stringify(
-          items.map((i) => ({ id: i.id, size: i.size, qty: i.quantity }))
+        printful_items: JSON.stringify(
+          items.map((i) => ({
+            svid: i.syncVariantId,
+            qty: i.quantity,
+          }))
         ),
       },
     });

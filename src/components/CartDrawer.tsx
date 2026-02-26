@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useEffect, useState } from "react";
@@ -28,11 +29,11 @@ export default function CartDrawer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: items.map((item) => ({
-            id: item.product.id,
+            syncVariantId: item.syncVariantId,
             name: item.product.name,
-            price: item.product.price,
+            variantLabel: item.variantLabel,
+            price: item.variantPrice,
             quantity: item.quantity,
-            size: item.size,
           })),
         }),
       });
@@ -80,31 +81,34 @@ export default function CartDrawer() {
               <ul className="space-y-4">
                 {items.map((item) => (
                   <li
-                    key={`${item.product.id}-${item.size}`}
+                    key={item.syncVariantId}
                     className="flex gap-4 bg-beige/50 rounded-lg p-3"
                   >
-                    <div className="w-16 h-16 bg-beige rounded-md flex items-center justify-center shrink-0">
-                      <ShoppingBag size={20} className="text-blue/30" />
+                    <div className="w-16 h-16 bg-beige rounded-md overflow-hidden relative shrink-0">
+                      <Image
+                        src={item.product.thumbnail}
+                        alt={item.product.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium truncate">
                         {item.product.name}
                       </h3>
-                      {item.size && (
-                        <p className="text-xs text-foreground-muted">
-                          Size: {item.size}
-                        </p>
-                      )}
+                      <p className="text-xs text-foreground-muted">
+                        {item.variantLabel}
+                      </p>
                       <p className="text-sm font-medium mt-1">
-                        ${item.product.price}
+                        ${item.variantPrice.toFixed(2)}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <button
                           onClick={() =>
                             updateQuantity(
-                              item.product.id,
-                              item.quantity - 1,
-                              item.size
+                              item.syncVariantId,
+                              item.quantity - 1
                             )
                           }
                           className="w-6 h-6 rounded border border-beige-dark/40 flex items-center justify-center hover:border-blue transition-colors"
@@ -117,9 +121,8 @@ export default function CartDrawer() {
                         <button
                           onClick={() =>
                             updateQuantity(
-                              item.product.id,
-                              item.quantity + 1,
-                              item.size
+                              item.syncVariantId,
+                              item.quantity + 1
                             )
                           }
                           className="w-6 h-6 rounded border border-beige-dark/40 flex items-center justify-center hover:border-blue transition-colors"
@@ -127,7 +130,7 @@ export default function CartDrawer() {
                           <Plus size={12} />
                         </button>
                         <button
-                          onClick={() => removeItem(item.product.id, item.size)}
+                          onClick={() => removeItem(item.syncVariantId)}
                           className="ml-auto text-xs text-foreground-muted hover:text-red-500 transition-colors"
                         >
                           Remove
@@ -144,7 +147,7 @@ export default function CartDrawer() {
             <div className="border-t border-beige-dark/30 px-6 py-4 space-y-4">
               <div className="flex justify-between text-sm font-medium">
                 <span>Total</span>
-                <span>${totalPrice()}</span>
+                <span>${totalPrice().toFixed(2)}</span>
               </div>
               <button
                 onClick={handleCheckout}

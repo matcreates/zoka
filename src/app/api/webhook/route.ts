@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
+import { createPrintfulOrder } from "@/lib/printful";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -28,19 +29,39 @@ export async function POST(request: Request) {
 
     const fullSession = await getStripe().checkout.sessions.retrieve(session.id);
     const customerEmail = fullSession.customer_details?.email;
+    const customerName = fullSession.customer_details?.name;
+    const shipping = fullSession.collected_information?.shipping_details;
 
-    console.log("Order completed:", {
-      sessionId: session.id,
-      email: customerEmail,
-      items: fullSession.metadata?.order_items,
-    });
+    const rawItems = fullSession.metadata?.printful_items;
+    if (!rawItems) {
+      console.error("No printful_items in session metadata", session.id);
+      return NextResponse.json({ received: true });
+    }
 
-    // TODO: Create Printful order here once products are synced.
-    // Retrieve shipping info from the Stripe session and use it
-    // to call createPrintfulOrder() from @/lib/printful
-    //
-    // const items = JSON.parse(fullSession.metadata?.order_items || "[]");
-    // await createPrintfulOrder(recipient, printfulItems);
+    const items: Array<{ svid: number; qty: number }> = JSON.parse(rawItems);
+
+    try {
+      const result = await createPrintfulOrder(
+        {
+          name: shipping?.name || customerName || "Customer",
+          address1: shipping?.address?.line1 || "",
+          address2: shipping?.address?.line2 || undefined,
+          city: shipping?.address?.city || "",
+          state_code: shipping?.address?.state || "",
+          country_code: shipping?.address?.country || "",
+          zip: shipping?.address?.postal_code || "",
+          email: customerEmail || "",
+        },
+        items.map((i) => ({
+          sync_variant_id: i.svid,
+          quantity: i.qty,
+        }))
+      );
+
+      console.log("Printful order created:", result.result?.id, "for session:", session.id);
+    } catch (err) {
+      console.error("Failed to create Printful order for session:", session.id, err);
+    }
   }
 
   return NextResponse.json({ received: true });

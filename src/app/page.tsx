@@ -2,12 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory, getFeaturedProducts } from "@/lib/products";
+import { getAllProducts } from "@/lib/products";
 
-export default function Home() {
-  const featured = getFeaturedProducts();
-  const featuredClothing = featured.filter((p) => p.category === "clothing");
-  const featuredPosters = featured.filter((p) => p.category === "poster");
+export const revalidate = 3600;
+
+export default async function Home() {
+  const allProducts = await getAllProducts();
+  const clothing = allProducts.filter((p) => p.category === "clothing");
+  const posters = allProducts.filter((p) => p.category === "poster");
+
+  const featuredClothing = clothing.slice(0, 3);
+  const featuredPosters = posters.slice(0, 3);
 
   return (
     <>
@@ -46,55 +51,61 @@ export default function Home() {
       </section>
 
       {/* Featured Clothing */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-semibold">Clothing</h2>
-            <p className="text-foreground-muted text-sm mt-1">
-              Wearable art, printed on demand
-            </p>
+      {featuredClothing.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-20">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-semibold">Clothing</h2>
+              <p className="text-foreground-muted text-sm mt-1">
+                Wearable art, printed on demand
+              </p>
+            </div>
+            <Link
+              href="/clothing"
+              className="text-sm font-medium text-blue hover:text-blue-dark transition-colors inline-flex items-center gap-1"
+            >
+              View all <ArrowRight size={14} />
+            </Link>
           </div>
-          <Link
-            href="/clothing"
-            className="text-sm font-medium text-blue hover:text-blue-dark transition-colors inline-flex items-center gap-1"
-          >
-            View all <ArrowRight size={14} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          {featuredClothing.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {featuredClothing.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Divider */}
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="h-px bg-beige-dark/30" />
-      </div>
+      {featuredClothing.length > 0 && featuredPosters.length > 0 && (
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="h-px bg-beige-dark/30" />
+        </div>
+      )}
 
       {/* Featured Posters */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-semibold">Posters</h2>
-            <p className="text-foreground-muted text-sm mt-1">
-              Museum-quality art prints
-            </p>
+      {featuredPosters.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-20">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-semibold">Posters</h2>
+              <p className="text-foreground-muted text-sm mt-1">
+                Museum-quality art prints
+              </p>
+            </div>
+            <Link
+              href="/posters"
+              className="text-sm font-medium text-blue hover:text-blue-dark transition-colors inline-flex items-center gap-1"
+            >
+              View all <ArrowRight size={14} />
+            </Link>
           </div>
-          <Link
-            href="/posters"
-            className="text-sm font-medium text-blue hover:text-blue-dark transition-colors inline-flex items-center gap-1"
-          >
-            View all <ArrowRight size={14} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          {featuredPosters.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {featuredPosters.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* CTA Banner */}
       <section className="bg-foreground text-beige-light">
