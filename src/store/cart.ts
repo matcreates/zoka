@@ -95,7 +95,22 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "zoka-cart",
+      version: 1,
       partialize: (state) => ({ items: state.items }),
+      migrate: () => {
+        return { items: [] };
+      },
+      merge: (_persisted, current) => {
+        const persisted = _persisted as { items?: CartItem[] } | undefined;
+        const items = (persisted?.items ?? []).filter(
+          (item) =>
+            typeof item.syncVariantId === "number" &&
+            typeof item.variantPrice === "number" &&
+            item.product?.id &&
+            item.product?.thumbnail
+        );
+        return { ...current, items };
+      },
     }
   )
 );
