@@ -66,7 +66,7 @@ export async function fetchAllSyncProducts(): Promise<PrintfulSyncProduct[]> {
   while (true) {
     const res = await fetch(
       `${PRINTFUL_API}/store/products?offset=${offset}&limit=${limit}`,
-      { headers: getHeaders(), next: { revalidate: 3600 } }
+      { headers: getHeaders(), next: { revalidate: 3600, tags: ["printful-products"] } }
     );
     if (!res.ok) throw new Error("Failed to fetch products from Printful");
     const data = await res.json();
@@ -85,7 +85,7 @@ export async function fetchSyncProduct(id: number): Promise<{
 }> {
   const res = await fetch(`${PRINTFUL_API}/store/products/${id}`, {
     headers: getHeaders(),
-    next: { revalidate: 3600 },
+    next: { revalidate: 3600, tags: ["printful-products"] },
   });
   if (!res.ok) throw new Error(`Failed to fetch product ${id} from Printful`);
   const data = await res.json();
