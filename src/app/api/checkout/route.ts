@@ -6,6 +6,7 @@ interface CheckoutItem {
   name: string;
   variantLabel: string;
   price: number;
+  currency: string;
   quantity: number;
 }
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       },
       line_items: items.map((item) => ({
         price_data: {
-          currency: "usd",
+          currency: item.currency.toLowerCase(),
           product_data: {
             name: item.name,
             description: item.variantLabel,

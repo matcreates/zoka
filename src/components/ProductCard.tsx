@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
 
 export default function ProductCard({ product }: { product: Product }) {
   return (
@@ -19,7 +19,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.name}
       </h3>
       <p className="text-foreground-muted text-sm mt-0.5">
-        {product.variants.length > 1 ? "From " : ""}${product.price.toFixed(2)}
+        {product.variants.length > 1 ? "From " : ""}{formatPrice(product.price, product.currency)}
       </p>
     </Link>
   );

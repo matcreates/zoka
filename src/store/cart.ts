@@ -7,6 +7,7 @@ export interface CartProduct {
   id: string;
   name: string;
   price: number;
+  currency: string;
   category: "clothing" | "poster";
   thumbnail: string;
 }
@@ -95,7 +96,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "zoka-cart",
-      version: 1,
+      version: 2,
       partialize: (state) => ({ items: state.items }),
       migrate: () => {
         return { items: [] };
@@ -107,7 +108,8 @@ export const useCartStore = create<CartState>()(
             typeof item.syncVariantId === "number" &&
             typeof item.variantPrice === "number" &&
             item.product?.id &&
-            item.product?.thumbnail
+            item.product?.thumbnail &&
+            item.product?.currency
         );
         return { ...current, items };
       },

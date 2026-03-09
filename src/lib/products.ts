@@ -18,10 +18,20 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  currency: string;
   category: "clothing" | "poster";
   images: string[];
   thumbnail: string;
   variants: ProductVariant[];
+}
+
+// ---------- Currency ----------
+
+export function formatPrice(amount: number, currency: string): string {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency,
+  }).format(amount);
 }
 
 // ---------- Helpers ----------
@@ -85,6 +95,7 @@ export async function getAllProducts(): Promise<Product[]> {
           name: sp.name,
           description: buildDescription(catalogName, category),
           price: minPrice,
+          currency: variants[0].currency,
           category,
           images: images.length > 0 ? images : [sp.thumbnail_url],
           thumbnail: sp.thumbnail_url,

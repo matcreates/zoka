@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { formatPrice } from "@/lib/products";
 import { useEffect, useState } from "react";
 
 export default function CartDrawer() {
@@ -33,6 +34,7 @@ export default function CartDrawer() {
             name: item.product.name,
             variantLabel: item.variantLabel,
             price: item.variantPrice,
+            currency: item.product.currency,
             quantity: item.quantity,
           })),
         }),
@@ -101,7 +103,7 @@ export default function CartDrawer() {
                         {item.variantLabel}
                       </p>
                       <p className="text-sm font-medium mt-1">
-                        ${item.variantPrice.toFixed(2)}
+                        {formatPrice(item.variantPrice, item.product.currency)}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <button
@@ -147,7 +149,7 @@ export default function CartDrawer() {
             <div className="border-t border-beige-dark/30 px-6 py-4 space-y-4">
               <div className="flex justify-between text-sm font-medium">
                 <span>Total</span>
-                <span>${totalPrice().toFixed(2)}</span>
+                <span>{formatPrice(totalPrice(), items[0]?.product.currency ?? "USD")}</span>
               </div>
               <button
                 onClick={handleCheckout}

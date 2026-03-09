@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
-import type { Product } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -21,6 +21,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         id: product.id,
         name: product.name,
         price: product.price,
+        currency: product.currency,
         category: product.category,
         thumbnail: product.thumbnail,
       },
@@ -90,7 +91,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               {product.name}
             </h1>
             <p className="text-2xl font-semibold text-blue mb-6">
-              ${selectedVariant.price.toFixed(2)}
+              {formatPrice(selectedVariant.price, product.currency)}
             </p>
             <p className="text-foreground-muted leading-relaxed mb-8">
               {product.description}
