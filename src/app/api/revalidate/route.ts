@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
   }
 
-  revalidateTag("printful-products");
+  revalidateTag("printful-products", "max");
 
   return NextResponse.json({ revalidated: true, now: Date.now() });
 }
